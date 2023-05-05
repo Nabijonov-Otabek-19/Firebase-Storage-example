@@ -1,4 +1,4 @@
-package uz.gita.firebasestorageexample
+package uz.gita.firebasestorageexample.data
 
 sealed interface UploadData {
     object Cancel : UploadData

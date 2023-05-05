@@ -1,4 +1,4 @@
-package uz.gita.firebasestorageexample
+package uz.gita.firebasestorageexample.repository
 
 import com.google.firebase.ktx.Firebase
 import com.google.firebase.storage.ktx.storage
