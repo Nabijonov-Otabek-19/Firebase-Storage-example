@@ -1,8 +1,11 @@
 package uz.gita.firebasestorageexample.util
 
+import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.provider.Settings
+import android.util.Log
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import com.karumi.dexter.Dexter
 import com.karumi.dexter.MultiplePermissionsReport
@@ -30,4 +33,12 @@ fun ComponentActivity.checkPermissions(array: List<String>, block: () -> Unit) {
                 startActivity(intent)
             }
         }).check()
+}
+
+fun myLog(ms: String) {
+    Log.d("TTT", ms)
+}
+
+fun Context.toast(message: CharSequence, length: Int = Toast.LENGTH_SHORT) {
+    Toast.makeText(this, message, length).show()
 }

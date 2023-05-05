@@ -1,5 +1,6 @@
 package uz.gita.firebasestorageexample.adapter
 
+import android.net.Uri
 import android.view.LayoutInflater
 import android.view.ViewGroup
 import androidx.recyclerview.widget.RecyclerView.Adapter
@@ -9,9 +10,9 @@ import uz.gita.firebasestorageexample.databinding.ItemImageBinding
 
 class MyAdapter : Adapter<MyAdapter.ItemHolder>() {
 
-    private var list: List<String> = ArrayList()
+    private var list: List<Uri> = ArrayList()
 
-    fun setData(l: List<String>) {
+    fun setData(l: List<Uri>) {
         list = l
         notifyDataSetChanged()
     }
