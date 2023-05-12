@@ -1,6 +1,7 @@
 package uz.gita.firebasestorageexample
 
 import android.Manifest
+import android.annotation.SuppressLint
 import android.app.DownloadManager
 import android.content.Context
 import android.content.pm.PackageManager
@@ -8,6 +9,7 @@ import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.os.Environment
+import android.provider.MediaStore
 import androidx.activity.viewModels
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
@@ -22,6 +24,7 @@ import uz.gita.firebasestorageexample.util.myLog
 import uz.gita.firebasestorageexample.util.toast
 import uz.gita.firebasestorageexample.viewmodel.MainViewModel
 import java.io.File
+
 
 class MainActivity : AppCompatActivity() {
 
@@ -98,6 +101,26 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    // This method is not working
+    @SuppressLint("Recycle")
+    private fun isImageExists(url: String): Boolean {
+        val fileName = url.substring(url.lastIndexOf("/") + 1)
+
+        val projection = arrayOf(
+            MediaStore.Images.Media.DISPLAY_NAME,
+            MediaStore.Images.Media.DATA
+        )
+
+        val selection = "${MediaStore.Images.Media.DATA} like ?"
+        val selectionArgs = arrayOf(Environment.DIRECTORY_PICTURES + "/" + fileName)
+
+        val queryUri = MediaStore.Images.Media.EXTERNAL_CONTENT_URI
+
+        val cursor = contentResolver.query(queryUri, projection, selection, selectionArgs, null)
+
+        return (cursor?.count ?: 0) > 0
+    }
+
     private fun downloadImage(url: String) {
         val directory = File(Environment.DIRECTORY_PICTURES)
 
@@ -109,12 +132,14 @@ class MainActivity : AppCompatActivity() {
         val downloadUri = Uri.parse(url)
 
         val request = DownloadManager.Request(downloadUri).apply {
-            setAllowedNetworkTypes(DownloadManager.Request.NETWORK_WIFI or DownloadManager.Request.NETWORK_MOBILE)
+            setAllowedNetworkTypes(
+                DownloadManager.Request.NETWORK_WIFI or DownloadManager.Request.NETWORK_MOBILE
+            )
                 .setAllowedOverRoaming(false)
                 .setTitle(url.substring(url.lastIndexOf("/") + 1))
                 .setDescription("")
                 .setDestinationInExternalPublicDir(
-                    directory.toString(),
+                    Environment.DIRECTORY_PICTURES,
                     url.substring(url.lastIndexOf("/") + 1)
                 )
         }
@@ -130,7 +155,11 @@ class MainActivity : AppCompatActivity() {
         val btmSetFon = view.findViewById<AppCompatTextView>(R.id.btnSetFon)
 
         btnSave.setOnClickListener {
-            downloadImage(uri.toString())
+            if (isImageExists(uri.toString())) {
+                myLog("Exist" + isImageExists(uri.toString()).toString())
+                toast("Image is already saved")
+
+            } else downloadImage(uri.toString())
             dialog.dismiss()
         }
 
