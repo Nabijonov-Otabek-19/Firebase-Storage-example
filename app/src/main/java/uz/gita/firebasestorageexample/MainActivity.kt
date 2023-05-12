@@ -3,13 +3,14 @@ package uz.gita.firebasestorageexample
 import android.Manifest
 import android.annotation.SuppressLint
 import android.app.DownloadManager
+import android.app.WallpaperManager
 import android.content.Context
 import android.content.pm.PackageManager
+import android.graphics.BitmapFactory
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.os.Environment
-import android.provider.MediaStore
 import androidx.activity.viewModels
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
@@ -24,6 +25,7 @@ import uz.gita.firebasestorageexample.util.myLog
 import uz.gita.firebasestorageexample.util.toast
 import uz.gita.firebasestorageexample.viewmodel.MainViewModel
 import java.io.File
+import java.io.IOException
 
 
 class MainActivity : AppCompatActivity() {
@@ -46,6 +48,7 @@ class MainActivity : AppCompatActivity() {
             ) {
                 askPermissions(it)
             } else {
+                myLog(isImageExists(it.toString()).toString())
                 bottomSheetDialog(it)
             }
         }
@@ -101,32 +104,38 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    private fun setBackground(path: String) {
+        try {
+            val uri = Uri.parse(path)
+            val inputStream = contentResolver.openInputStream(uri)
+            val bitmap = BitmapFactory.decodeStream(inputStream)
+            val wallpaperManager = WallpaperManager.getInstance(this)
+            wallpaperManager.setBitmap(bitmap)
+        } catch (e: IOException) {
+            e.printStackTrace()
+        }
+
+    }
+
     // This method is not working
     @SuppressLint("Recycle")
     private fun isImageExists(url: String): Boolean {
-        val fileName = url.substring(url.lastIndexOf("/") + 1)
+        val imageName = url.substring(url.lastIndexOf("%") + 1, url.indexOf("?"))
 
-        val projection = arrayOf(
-            MediaStore.Images.Media.DISPLAY_NAME,
-            MediaStore.Images.Media.DATA
-        )
-
-        val selection = "${MediaStore.Images.Media.DATA} like ?"
-        val selectionArgs = arrayOf(Environment.DIRECTORY_PICTURES + "/" + fileName)
-
-        val queryUri = MediaStore.Images.Media.EXTERNAL_CONTENT_URI
-
-        val cursor = contentResolver.query(queryUri, projection, selection, selectionArgs, null)
-
-        return (cursor?.count ?: 0) > 0
+        val imageFile = File(Environment.getExternalStoragePublicDirectory(imageName), imageName)
+        return imageFile.exists()
     }
 
-    private fun downloadImage(url: String) {
+    private fun downloadImage(url: String): String {
         val directory = File(Environment.DIRECTORY_PICTURES)
+
+        val imageFile = url.substring(url.lastIndexOf("%") + 1, url.indexOf("?"))
 
         if (!directory.exists()) {
             directory.mkdirs()
         }
+
+        myLog(url.substring(url.lastIndexOf("%") + 1, url.indexOf("?")))
 
         val downloadManager = this.getSystemService(Context.DOWNLOAD_SERVICE) as DownloadManager
         val downloadUri = Uri.parse(url)
@@ -136,14 +145,16 @@ class MainActivity : AppCompatActivity() {
                 DownloadManager.Request.NETWORK_WIFI or DownloadManager.Request.NETWORK_MOBILE
             )
                 .setAllowedOverRoaming(false)
-                .setTitle(url.substring(url.lastIndexOf("/") + 1))
+                .setTitle(url.substring(url.lastIndexOf("/")))
                 .setDescription("")
                 .setDestinationInExternalPublicDir(
                     Environment.DIRECTORY_PICTURES,
-                    url.substring(url.lastIndexOf("/") + 1)
+                    url.substring(url.lastIndexOf("%") + 1, url.indexOf("?"))
                 )
         }
         downloadManager.enqueue(request)
+
+        return imageFile
     }
 
     private fun bottomSheetDialog(uri: Uri) {
@@ -156,7 +167,6 @@ class MainActivity : AppCompatActivity() {
 
         btnSave.setOnClickListener {
             if (isImageExists(uri.toString())) {
-                myLog("Exist" + isImageExists(uri.toString()).toString())
                 toast("Image is already saved")
 
             } else downloadImage(uri.toString())
@@ -164,6 +174,7 @@ class MainActivity : AppCompatActivity() {
         }
 
         btmSetFon.setOnClickListener {
+            setBackground(uri.toString())
             dialog.dismiss()
         }
 
