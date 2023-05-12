@@ -17,8 +17,21 @@ class MyAdapter : Adapter<MyAdapter.ItemHolder>() {
         notifyDataSetChanged()
     }
 
+    private var longClick: ((Uri) -> Unit)? = null
+
+    fun setLongClickListener(block: (Uri) -> Unit) {
+        longClick = block
+    }
+
     inner class ItemHolder(private val binding: ItemImageBinding) :
         ViewHolder(binding.root) {
+
+        init {
+            binding.root.setOnLongClickListener {
+                longClick?.invoke(list[adapterPosition])
+                return@setOnLongClickListener true
+            }
+        }
 
         fun bind() {
             Glide.with(binding.root.context).load(list[adapterPosition]).into(binding.img)
