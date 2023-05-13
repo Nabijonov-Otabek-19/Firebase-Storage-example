@@ -17,9 +17,9 @@ class MyAdapter : Adapter<MyAdapter.ItemHolder>() {
         notifyDataSetChanged()
     }
 
-    private var longClick: ((Uri) -> Unit)? = null
+    private var longClick: ((String) -> Unit)? = null
 
-    fun setLongClickListener(block: (Uri) -> Unit) {
+    fun setLongClickListener(block: (String) -> Unit) {
         longClick = block
     }
 
@@ -28,7 +28,7 @@ class MyAdapter : Adapter<MyAdapter.ItemHolder>() {
 
         init {
             binding.root.setOnLongClickListener {
-                longClick?.invoke(list[adapterPosition])
+                longClick?.invoke(list[adapterPosition].toString())
                 return@setOnLongClickListener true
             }
         }

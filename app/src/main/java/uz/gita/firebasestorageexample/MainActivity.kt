@@ -1,22 +1,17 @@
 package uz.gita.firebasestorageexample
 
-import android.Manifest
 import android.annotation.SuppressLint
 import android.app.DownloadManager
 import android.app.WallpaperManager
 import android.content.Context
-import android.content.pm.PackageManager
 import android.graphics.BitmapFactory
 import android.net.Uri
-import android.os.Build
 import android.os.Bundle
 import android.os.Environment
+import android.provider.MediaStore
 import androidx.activity.viewModels
-import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.AppCompatTextView
-import androidx.core.app.ActivityCompat
-import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.GridLayoutManager
 import com.google.android.material.bottomsheet.BottomSheetDialog
 import uz.gita.firebasestorageexample.adapter.MyAdapter
@@ -30,10 +25,6 @@ import java.io.IOException
 
 class MainActivity : AppCompatActivity() {
 
-    companion object {
-        private const val MY_PERMISSIONS_REQUEST_WRITE_EXTERNAL_STORAGE = 1
-    }
-
     private lateinit var binding: ActivityMainBinding
     private val adapter by lazy { MyAdapter() }
     private val viewModel by viewModels<MainViewModel>()
@@ -44,13 +35,7 @@ class MainActivity : AppCompatActivity() {
         setContentView(binding.root)
 
         adapter.setLongClickListener {
-            if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q
-            ) {
-                askPermissions(it)
-            } else {
-                myLog(isImageExists(it.toString()).toString())
-                bottomSheetDialog(it)
-            }
+            bottomSheetDialog(it)
         }
 
         viewModel.imagesData.observe(this) {
@@ -68,96 +53,103 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun askPermissions(uri: Uri) {
-        if (ContextCompat.checkSelfPermission(
-                this,
-                Manifest.permission.WRITE_EXTERNAL_STORAGE
-            ) != PackageManager.PERMISSION_GRANTED
-        ) {
-            if (ActivityCompat.shouldShowRequestPermissionRationale(
-                    this,
-                    Manifest.permission.WRITE_EXTERNAL_STORAGE
-                )
-            ) {
-                AlertDialog.Builder(this)
-                    .setTitle("Permission required")
-                    .setMessage("Permission required to save photos from the Web.")
-                    .setPositiveButton("Accept") { dialog, id ->
-                        ActivityCompat.requestPermissions(
-                            this,
-                            arrayOf(Manifest.permission.WRITE_EXTERNAL_STORAGE),
-                            MY_PERMISSIONS_REQUEST_WRITE_EXTERNAL_STORAGE
-                        )
-                        finish()
-                    }
-                    .setNegativeButton("Deny") { dialog, id -> dialog.cancel() }
-                    .show()
-            } else {
-                ActivityCompat.requestPermissions(
-                    this,
-                    arrayOf(Manifest.permission.WRITE_EXTERNAL_STORAGE),
-                    MY_PERMISSIONS_REQUEST_WRITE_EXTERNAL_STORAGE
-                )
-            }
-        } else {
-            downloadImage(uri.toString())
-        }
-    }
-
     private fun setBackground(path: String) {
-        try {
-            val uri = Uri.parse(path)
-            val inputStream = contentResolver.openInputStream(uri)
-            val bitmap = BitmapFactory.decodeStream(inputStream)
-            val wallpaperManager = WallpaperManager.getInstance(this)
-            wallpaperManager.setBitmap(bitmap)
-        } catch (e: IOException) {
-            e.printStackTrace()
+        if (path == "") {
+            myLog("IMage path not found")
+            toast("IMage path not found")
+        } else {
+            val bitmap = BitmapFactory.decodeFile(path)
+            val wallpaperManager = WallpaperManager.getInstance(applicationContext)
+            try {
+                wallpaperManager.setBitmap(bitmap)
+            } catch (e: IOException) {
+                e.printStackTrace()
+            }
         }
-
     }
 
-    // This method is not working
     @SuppressLint("Recycle")
-    private fun isImageExists(url: String): Boolean {
-        val imageName = url.substring(url.lastIndexOf("%") + 1, url.indexOf("?"))
+    private fun getImagePath(uri: String): String {
+        val imageName = uri.substring(uri.lastIndexOf("%") + 1, uri.indexOf("?"))
 
-        val imageFile = File(Environment.getExternalStoragePublicDirectory(imageName), imageName)
-        return imageFile.exists()
+        val projection = arrayOf(MediaStore.Images.Media.DATA)
+        val selection = "${MediaStore.Images.Media.DISPLAY_NAME} = ?"
+        val selectionArgs = arrayOf(imageName)
+        val sortOrder = "${MediaStore.Images.Media.DATE_MODIFIED} DESC"
+
+        val contentResolver = contentResolver
+        val cursor = contentResolver.query(
+            MediaStore.Images.Media.EXTERNAL_CONTENT_URI,
+            projection,
+            selection,
+            selectionArgs,
+            sortOrder
+        )
+
+        return if (cursor != null && cursor.moveToFirst()) {
+            val columnIndex = cursor.getColumnIndexOrThrow(MediaStore.Images.Media.DATA)
+            val imagePath = cursor.getString(columnIndex)
+
+            myLog("IMG Path = $imagePath")
+
+            imagePath
+        } else {
+            // Image not found
+            ""
+        }
     }
 
-    private fun downloadImage(url: String): String {
+    @SuppressLint("Recycle")
+    private fun isImageExists(uri: String): Boolean {
+        val imageName = uri.substring(uri.lastIndexOf("%") + 1, uri.indexOf("?"))
+
+        val projection = arrayOf(MediaStore.Images.Media._ID)
+        val selection = "${MediaStore.Images.Media.DISPLAY_NAME} = ?"
+        val selectionArgs = arrayOf(imageName)
+        val sortOrder = "${MediaStore.Images.Media.DATE_MODIFIED} DESC"
+
+        val contentResolver = contentResolver
+        val cursor = contentResolver.query(
+            MediaStore.Images.Media.EXTERNAL_CONTENT_URI,
+            projection,
+            selection,
+            selectionArgs,
+            sortOrder
+        )
+
+        return cursor != null && cursor.moveToFirst()
+    }
+
+    private fun downloadImage(uri: String) {
         val directory = File(Environment.DIRECTORY_PICTURES)
 
-        val imageFile = url.substring(url.lastIndexOf("%") + 1, url.indexOf("?"))
+        val imageFile = uri.substring(uri.lastIndexOf("%") + 1, uri.indexOf("?"))
 
         if (!directory.exists()) {
             directory.mkdirs()
         }
 
-        myLog(url.substring(url.lastIndexOf("%") + 1, url.indexOf("?")))
+        myLog(imageFile)
 
         val downloadManager = this.getSystemService(Context.DOWNLOAD_SERVICE) as DownloadManager
-        val downloadUri = Uri.parse(url)
+        val downloadUri = Uri.parse(uri)
 
         val request = DownloadManager.Request(downloadUri).apply {
             setAllowedNetworkTypes(
                 DownloadManager.Request.NETWORK_WIFI or DownloadManager.Request.NETWORK_MOBILE
             )
                 .setAllowedOverRoaming(false)
-                .setTitle(url.substring(url.lastIndexOf("/")))
+                .setTitle(imageFile)
                 .setDescription("")
                 .setDestinationInExternalPublicDir(
                     Environment.DIRECTORY_PICTURES,
-                    url.substring(url.lastIndexOf("%") + 1, url.indexOf("?"))
+                    imageFile
                 )
         }
         downloadManager.enqueue(request)
-
-        return imageFile
     }
 
-    private fun bottomSheetDialog(uri: Uri) {
+    private fun bottomSheetDialog(uri: String) {
         val dialog = BottomSheetDialog(this)
         dialog.setCancelable(false)
         val view = dialog.layoutInflater.inflate(R.layout.bottom_sheet_dialog, null)
@@ -166,15 +158,21 @@ class MainActivity : AppCompatActivity() {
         val btmSetFon = view.findViewById<AppCompatTextView>(R.id.btnSetFon)
 
         btnSave.setOnClickListener {
-            if (isImageExists(uri.toString())) {
+            if (isImageExists(uri)) {
                 toast("Image is already saved")
 
-            } else downloadImage(uri.toString())
+            } else downloadImage(uri)
             dialog.dismiss()
         }
 
         btmSetFon.setOnClickListener {
-            setBackground(uri.toString())
+            val path: String = if (isImageExists(uri)) {
+                getImagePath(uri)
+            } else {
+                downloadImage(uri)
+                getImagePath(uri)
+            }
+            setBackground(path)
             dialog.dismiss()
         }
 
