@@ -1,4 +1,4 @@
-package uz.gita.firebasestorageexample.repository
+package uz.gita.firebasestorageexample.domain.repository
 
 import android.net.Uri
 import com.google.firebase.ktx.Firebase

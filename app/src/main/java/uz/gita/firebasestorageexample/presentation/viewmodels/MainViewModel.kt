@@ -1,4 +1,4 @@
-package uz.gita.firebasestorageexample.viewmodel
+package uz.gita.firebasestorageexample.presentation.viewmodels
 
 import android.net.Uri
 import androidx.lifecycle.MutableLiveData
@@ -6,7 +6,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
-import uz.gita.firebasestorageexample.repository.AppRepository
+import uz.gita.firebasestorageexample.domain.repository.AppRepository
 
 class MainViewModel : ViewModel() {
 

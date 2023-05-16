@@ -14,20 +14,19 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.AppCompatTextView
 import androidx.recyclerview.widget.GridLayoutManager
 import com.google.android.material.bottomsheet.BottomSheetDialog
-import uz.gita.firebasestorageexample.adapter.MyAdapter
 import uz.gita.firebasestorageexample.databinding.ActivityMainBinding
+import uz.gita.firebasestorageexample.presentation.ui.adapter.MyAdapter
+import uz.gita.firebasestorageexample.presentation.viewmodels.MainViewModel
 import uz.gita.firebasestorageexample.util.myLog
 import uz.gita.firebasestorageexample.util.toast
-import uz.gita.firebasestorageexample.viewmodel.MainViewModel
 import java.io.File
 import java.io.IOException
-
 
 class MainActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityMainBinding
-    private val adapter by lazy { MyAdapter() }
     private val viewModel by viewModels<MainViewModel>()
+    private val adapter by lazy { MyAdapter() }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -54,19 +53,27 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun setBackground(path: String) {
+        // Path = /storage/emulated/0/Pictures/2Flavash2.png
         if (path == "") {
-            myLog("IMage path not found")
-            toast("IMage path not found")
+            myLog("Image path not found")
         } else {
-            val bitmap = BitmapFactory.decodeFile(path)
-            val wallpaperManager = WallpaperManager.getInstance(applicationContext)
+            myLog("setBackground = $path")
             try {
-                wallpaperManager.setBitmap(bitmap)
+                val bitmap = BitmapFactory.decodeFile(path)
+                myLog("Bitmap = $bitmap")
+                if (bitmap != null) {
+                    val wallpaperManager = WallpaperManager.getInstance(this)
+                    wallpaperManager.setBitmap(bitmap)
+                } else {
+                    myLog("Failed to decode bitmap")
+                }
             } catch (e: IOException) {
                 e.printStackTrace()
+                myLog("Error setting wallpaper: ${e.message}")
             }
         }
     }
+
 
     @SuppressLint("Recycle")
     private fun getImagePath(uri: String): String {
@@ -89,8 +96,6 @@ class MainActivity : AppCompatActivity() {
         return if (cursor != null && cursor.moveToFirst()) {
             val columnIndex = cursor.getColumnIndexOrThrow(MediaStore.Images.Media.DATA)
             val imagePath = cursor.getString(columnIndex)
-
-            myLog("IMG Path = $imagePath")
 
             imagePath
         } else {
@@ -128,8 +133,6 @@ class MainActivity : AppCompatActivity() {
         if (!directory.exists()) {
             directory.mkdirs()
         }
-
-        myLog(imageFile)
 
         val downloadManager = this.getSystemService(Context.DOWNLOAD_SERVICE) as DownloadManager
         val downloadUri = Uri.parse(uri)

@@ -1,4 +1,4 @@
-package uz.gita.firebasestorageexample.adapter
+package uz.gita.firebasestorageexample.presentation.ui.adapter
 
 import android.net.Uri
 import android.view.LayoutInflater
