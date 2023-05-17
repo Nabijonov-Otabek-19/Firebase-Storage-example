@@ -59,7 +59,8 @@ class MainActivity : AppCompatActivity() {
         } else {
             myLog("setBackground = $path")
             try {
-                val bitmap = BitmapFactory.decodeFile(path)
+                val options = BitmapFactory.Options()
+                val bitmap = BitmapFactory.decodeFile(path, options)
                 myLog("Bitmap = $bitmap")
                 if (bitmap != null) {
                     val wallpaperManager = WallpaperManager.getInstance(this)
